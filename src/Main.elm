@@ -17,7 +17,7 @@ import Types exposing (Msg(..), ReplData)
 import File.Download as Download
 import Json.Decode exposing (Value)
 import Codec
-
+import Keyboard
 
 main =
     Browser.element
@@ -32,6 +32,7 @@ type alias Model =
     { input : String
     , output : String
     , replData : Maybe ReplData
+    , pressedKeys : List Keyboard.Key
     }
 
 
@@ -49,6 +50,7 @@ init flags =
     ( { input = ""
       , output = ""
       , replData = Nothing
+      , pressedKeys = []
       }
     , Cmd.none
     )
@@ -56,7 +58,8 @@ init flags =
 
 
 subscriptions _ =
-        receiveData ReceivedDataFromJS
+        Sub.batch [receiveData ReceivedDataFromJS
+        , Sub.map KeyboardMsg Keyboard.subscriptions]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -73,8 +76,13 @@ update msg model =
 
 
         GotReply result ->
+
             case result of
                 Ok str ->
+                    if String.left 24 str == "{\"type\":\"compile-errors\""
+                    then
+                        ( { model | output = str }, Cmd.none )
+                    else
                     ( { model | output =  "Ok" },  sendData str )
 
                 Err _ ->
@@ -87,6 +95,21 @@ update msg model =
 
                 Err _ ->
                       ( { model | replData = Nothing}, Cmd.none )
+
+        KeyboardMsg keyMsg ->
+            let
+                pressedKeys =
+                    Keyboard.update keyMsg model.pressedKeys
+
+                ( newModel, cmd ) =
+                    -- TODO: cmd?
+                    if List.member Keyboard.Shift pressedKeys && List.member Keyboard.Enter pressedKeys then
+                        (model, Eval.submitExpression model.input)
+
+                    else
+                        ( { model | pressedKeys = pressedKeys }, Cmd.none )
+            in
+            ( newModel, cmd )
 
 
 download : String -> Cmd msg
@@ -108,9 +131,14 @@ mainColumn model =
     column mainColumnStyle
         [ column [ centerX, spacing 20, width (px 600), height (px 400) ]
             [ title "Elm Notebook POC"
-            , inputText model
-            , appButton
-            , outputDisplay model
+            , column [spacing 4, width (px 600)] [inputText model
+                , el [Font.size 12, Font.italic] (text "Shift + Enter to evaluate cell")
+                ]
+            , display model
+            --, appButton
+            , paragraph [Font.size 12, width (px 600)] [text model.output]
+
+            , displayReturnValue model
             ]
         ]
 
@@ -119,11 +147,30 @@ title : String -> Element msg
 title str =
     row [ centerX, Font.bold ] [ text str ]
 
+display : Model -> Element msg
+display model =
+  let
+    value = case model.replData of
+         Nothing -> "Error"
+         Just replData -> replData.value
+   in
+        row [Font.size 16  ]
+        [ text value ]
 
-outputDisplay : Model -> Element msg
-outputDisplay model =
-        row [  ]
-        [ text (model.replData |> Debug.toString) ]
+
+displayReturnValue : Model -> Element msg
+displayReturnValue model =
+    case model.replData of
+             Nothing ->
+                 row [Font.size 12 , alignBottom ]
+                         [ text "Error" ]
+             Just replData ->
+               column [Font.size 12, spacing 12,  alignBottom ]
+                 [ text <| "name = "   ++ (replData.name |> Maybe.withDefault "none")
+                 , text <|  "value = " ++ replData.value
+                 , text <| "type = "   ++ replData.tipe
+                 ]
+
 
 
 inputText : Model -> Element Msg
@@ -141,7 +188,7 @@ appButton =
     row [  ]
         [ Input.button buttonStyle
             { onPress = Just RequestEval
-            , label = el [  centerY ] (text "Submit")
+            , label = el [  centerY ] (text "Eval")
             }
         ]
 
@@ -164,4 +211,5 @@ buttonStyle =
     [ Background.color (rgb255 40 40 40)
     , Font.color (rgb255 255 255 255)
     , paddingXY 15 8
+    , Font.size 12
     ]

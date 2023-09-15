@@ -17,7 +17,6 @@
     app.ports.sendData.subscribe(function(data) {
     // Check if the Web Worker feature is available in the browser
     if (window.Worker) {
-        console.log('Setting up worker');
 
         // Create a Blob from the JavaScript code (string) and create a URL for it
         var blob = new Blob([data.replace('_Debug_toAnsiString(true,','_Debug_toAnsiString(false,' )], { type: 'application/javascript' });
@@ -25,20 +24,15 @@
 
         // Instantiate a new Web Worker object with the blob URL
         const myWorker = new Worker(url);
-        console.log('myWorker: ', myWorker);
-        console.log('Worker up and running');
 
         // Define an onmessage handler to receive messages from the worker
         myWorker.onmessage = (e) => {
-            console.log('Message received from worker:', e.data);
             app.ports.receiveData.send(e.data);
         };
-        console.log('Worker processed message if any.');
 
         // Define an onerror handler to catch errors from the worker
         myWorker.onerror = (e) => {
             console.error('Error from worker:', e.message);
-            console.log('Worker: done');
         };
     } else {
         console.error('Web Worker is not supported in your browser.');

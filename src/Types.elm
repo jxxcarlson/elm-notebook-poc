@@ -2,6 +2,7 @@ module Types exposing (Msg(..), ReplData)
 
 import Http
 import Json.Decode exposing (Value)
+import Keyboard
 
 type alias ReplData =
     { name : Maybe String
@@ -15,5 +16,6 @@ type Msg
     | RequestEval
     | GotReply (Result Http.Error String)
     | ReceivedDataFromJS Value
+    | KeyboardMsg Keyboard.Msg
 
 
