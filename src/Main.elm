@@ -81,6 +81,9 @@ update msg model =
                 Ok str ->
                     if String.left 24 str == "{\"type\":\"compile-errors\""
                     then
+                        let
+                            _ = Debug.log "STR" str
+                        in
                         ( { model | output = str }, Cmd.none )
                     else
                     ( { model | output =  "Ok" },  sendData str )
