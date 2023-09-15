@@ -18,6 +18,7 @@ import File.Download as Download
 import Json.Decode exposing (Value)
 import Codec
 import Keyboard
+import ErrorReporter
 
 main =
     Browser.element
@@ -30,7 +31,7 @@ main =
 
 type alias Model =
     { input : String
-    , output : String
+    , output : List ErrorReporter.MessageItem
     , replData : Maybe ReplData
     , pressedKeys : List Keyboard.Key
     }
@@ -48,7 +49,7 @@ type alias Flags =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { input = ""
-      , output = ""
+      , output = []
       , replData = Nothing
       , pressedKeys = []
       }
@@ -72,7 +73,7 @@ update msg model =
             ( { model | input = str }, Cmd.none )
 
         RequestEval ->
-            ( model, Eval.submitExpression model.input )
+            ( { model | replData = Nothing}, Eval.submitExpression model.input )
 
 
         GotReply result ->
@@ -82,14 +83,24 @@ update msg model =
                     if String.left 24 str == "{\"type\":\"compile-errors\""
                     then
                         let
-                            _ = Debug.log "STR" str
+                           report = case ErrorReporter.decodeErrorReporter str  of
+                                Ok report_ ->
+                                       report_
+                                        |> .errors
+                                        |> List.concatMap .problems
+                                        |> List.concatMap .message
+                                        --|> List.map ErrorReporter.renderMessageItem
+                                        --|> String.join "\n\n"
+                                        --|> (\items -> column [Font.size 12, width (px 600)] (List.map text items))
+                                Err _ -> [ErrorReporter.Plain "Oops, something wen't wrong."]
+
                         in
-                        ( { model | output = str }, Cmd.none )
+                           ( { model | output = report }, Cmd.none )
                     else
-                    ( { model | output =  "Ok" },  sendData str )
+                       ( { model | output = [ErrorReporter.stringToMessageItem  "Ok"] },  sendData str )
 
                 Err _ ->
-                    ( { model | output = "Error" }, Cmd.none )
+                    ( { model | output = [ErrorReporter.stringToMessageItem "Error"] }, Cmd.none )
 
         ReceivedDataFromJS value ->
             case Codec.decodeValue Eval.replDataCodec value of
@@ -107,7 +118,7 @@ update msg model =
                 ( newModel, cmd ) =
                     -- TODO: cmd?
                     if List.member Keyboard.Shift pressedKeys && List.member Keyboard.Enter pressedKeys then
-                        (model, Eval.submitExpression model.input)
+                        ({model | replData = Nothing}, Eval.submitExpression model.input)
 
                     else
                         ( { model | pressedKeys = pressedKeys }, Cmd.none )
@@ -139,7 +150,7 @@ mainColumn model =
                 ]
             , display model
             --, appButton
-            , paragraph [Font.size 12, width (px 600)] [text model.output]
+            , paragraph [Font.size 14, width (px 600)] (List.map ErrorReporter.renderMessageItem model.output)
 
             , displayReturnValue model
             ]
@@ -154,7 +165,7 @@ display : Model -> Element msg
 display model =
   let
     value = case model.replData of
-         Nothing -> "Error"
+         Nothing -> ""
          Just replData -> replData.value
    in
         row [Font.size 16  ]
@@ -166,7 +177,7 @@ displayReturnValue model =
     case model.replData of
              Nothing ->
                  row [Font.size 12 , alignBottom ]
-                         [ text "Error" ]
+                         [ text "" ]
              Just replData ->
                column [Font.size 12, spacing 12,  alignBottom ]
                  [ text <| "name = "   ++ (replData.name |> Maybe.withDefault "none")
