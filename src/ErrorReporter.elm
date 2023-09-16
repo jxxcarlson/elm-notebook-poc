@@ -4,6 +4,8 @@ module ErrorReporter exposing (decodeErrorReporter, renderMessageItem, MessageIt
 
 import Json.Decode as D
 import Element exposing (..)
+import Element.Font as Font
+import Color
 
 
 type alias ReplError =
@@ -48,7 +50,26 @@ renderMessageItem messageItem =
             el [] (text  str)
 
         Styled styledString ->
-            el [] (text styledString.string)
+            let
+              color = case styledString.color of
+                  "red" -> Element.rgb 1 0 0
+                  "green" -> Element.rgb 0 1 0
+                  "blue" -> Element.rgb 0 0 1
+                  "yellow" ->Element.rgb 1 1 0
+                  "black" -> Element.rgb 0.9 0.4 0.1
+                  "white" -> Element.rgb 1 1 1
+                  _ -> Element.rgb 0.9 0.4 0.1
+
+              style = if styledString.bold then
+                  Font.bold
+                 else if styledString.underline then
+                  Font.underline
+                 else
+                 Font.unitalicized
+
+            in
+
+            el [paddingXY 8 8, Font.color color] (text styledString.string)
 
 
 stringToMessageItem : String -> MessageItem
