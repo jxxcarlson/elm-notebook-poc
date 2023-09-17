@@ -37,7 +37,7 @@ type alias EvalState =
 
 --initEvalState : EvalState
 --initEvalState =
---    { decls = Dict.fromList [ ( "foo", "1" ) ]
+--    { decls = Dict.fromList [ ( "greet", """greet : String -> String greet name = "Hello " ++ name""" ) ]
 --    , types = Dict.empty
 --    , imports = Dict.empty
 --    }

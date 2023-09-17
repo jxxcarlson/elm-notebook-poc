@@ -12,7 +12,7 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
-import ErrorReporter
+import ErrorReporter exposing (MessageItem(..))
 import Eval
 import File.Download as Download
 import Html exposing (Html)
@@ -86,17 +86,18 @@ update msg model =
                     if String.left 24 str == "{\"type\":\"compile-errors\"" then
                         let
                             report =
-                                case ErrorReporter.decodeErrorReporter str of
+                                case ErrorReporter.decodeErrorReporter (str |> Debug.log "STR") of
                                     Ok report_ ->
                                         report_
                                             |> .errors
                                             |> List.concatMap .problems
                                             |> List.concatMap .message
 
-                                    --|> List.map ErrorReporter.renderMessageItem
-                                    --|> String.join "\n\n"
-                                    --|> (\items -> column [Font.size 12, width (px 600)] (List.map text items))
                                     Err _ ->
+                                        let
+                                            _ =
+                                                Debug.log "STR" str
+                                        in
                                         [ ErrorReporter.Plain "Oops, something wen't wrong." ]
                         in
                         ( { model | output = report }, Cmd.none )
@@ -150,7 +151,12 @@ view model =
 mainColumn : Model -> Element Msg
 mainColumn model =
     column mainColumnStyle
-        [ column [ centerX, spacing 20, width (px 600), height (px 400) ]
+        [ column
+            [ centerX
+            , spacing 20
+            , width (px 600)
+            , height (px 600)
+            ]
             [ title "Elm Notebook POC"
             , column [ spacing 4, width (px 600) ]
                 [ inputText model
@@ -162,8 +168,26 @@ mainColumn model =
             , if List.isEmpty model.output then
                 Element.none
 
+              else if model.output == [ Plain "Ok" ] then
+                Element.none
+
               else
-                paragraph [ paddingXY 8 8, Font.color (rgb 0.9 0.9 0.9), Font.size 14, width (px 600), Background.color (rgb 0 0 0) ] (List.map ErrorReporter.renderMessageItem model.output)
+                let
+                    output : List (Element msg)
+                    output =
+                        List.map ErrorReporter.renderMessageItem model.output
+                in
+                paragraph
+                    [ paddingXY 8 8
+                    , Font.color (rgb 0.9 0.9 0.9)
+                    , Font.size 14
+                    , width (px 600)
+                    , height (px 400)
+                    , scrollbarY
+                    , spacing 8
+                    , Background.color (rgb 0 0 0)
+                    ]
+                    output
             , displayReturnValue model
             ]
         ]

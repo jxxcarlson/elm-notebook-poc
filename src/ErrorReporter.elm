@@ -1,16 +1,19 @@
-module ErrorReporter exposing (decodeErrorReporter, renderMessageItem, MessageItem(..), StyledString, stringToMessageItem)
+module ErrorReporter exposing (MessageItem(..), StyledString, decodeErrorReporter, renderMessageItem, stringToMessageItem)
 
-{-| This module contains the decoders for the error messages that the repl -}
+{-| This module contains the decoders for the error messages that the repl
+-}
 
-import Json.Decode as D
+import Color
 import Element exposing (..)
 import Element.Font as Font
-import Color
+import Json.Decode as D
 
 
 type alias ReplError =
     { tipe : String
-    , errors: List ErrorItem }
+    , errors : List ErrorItem
+    }
+
 
 type alias ErrorItem =
     { path : String
@@ -18,10 +21,12 @@ type alias ErrorItem =
     , problems : List Problem
     }
 
+
 type alias Region =
     { start : Position
     , end : Position
     }
+
 
 type alias Position =
     { line : Int
@@ -35,6 +40,7 @@ type alias Problem =
     , message : List MessageItem
     }
 
+
 type alias StyledString =
     { bold : Bool
     , underline : Bool
@@ -47,40 +53,63 @@ renderMessageItem : MessageItem -> Element msg
 renderMessageItem messageItem =
     case messageItem of
         Plain str ->
-            el [] (text  str)
+            el [] (text (str |> Debug.log "PLAIN_STRING"))
 
         Styled styledString ->
             let
-              color = case styledString.color of
-                  "red" -> Element.rgb 1 0 0
-                  "green" -> Element.rgb 0 1 0
-                  "blue" -> Element.rgb 0 0 1
-                  "yellow" ->Element.rgb 1 1 0
-                  "black" -> Element.rgb 0.9 0.4 0.1
-                  "white" -> Element.rgb 1 1 1
-                  _ -> Element.rgb 0.9 0.4 0.1
+                color =
+                    case styledString.color of
+                        "red" ->
+                            Element.rgb 1 0 0
 
-              style = if styledString.bold then
-                  Font.bold
-                 else if styledString.underline then
-                  Font.underline
-                 else
-                 Font.unitalicized
+                        "green" ->
+                            Element.rgb 0 1 0
 
+                        "blue" ->
+                            Element.rgb 0 0 1
+
+                        "yellow" ->
+                            Element.rgb 1 1 0
+
+                        "black" ->
+                            Element.rgb 0.9 0.4 0.1
+
+                        "white" ->
+                            Element.rgb 1 1 1
+
+                        _ ->
+                            Element.rgb 0.9 0.4 0.1
+
+                style =
+                    if styledString.bold then
+                        Font.bold
+
+                    else if styledString.underline then
+                        Font.underline
+
+                    else
+                        Font.unitalicized
             in
-
-            el [paddingXY 8 8, Font.color color] (text styledString.string)
+            el [ paddingXY 8 8, Font.color color, style ] (text (styledString.string |> Debug.log "STY_STRING"))
 
 
 stringToMessageItem : String -> MessageItem
 stringToMessageItem str =
     Plain str
 
-type MessageItem = Plain String | Styled StyledString
+
+type MessageItem
+    = Plain String
+    | Styled StyledString
+
+
 
 -- decodeErrorReporter : String -> Result String ReplError
-decodeErrorReporter str  =
+
+
+decodeErrorReporter str =
     D.decodeString replErrorDecoder str
+
 
 replErrorDecoder : D.Decoder ReplError
 replErrorDecoder =
@@ -88,12 +117,14 @@ replErrorDecoder =
         (D.field "type" D.string)
         (D.field "errors" (D.list errorItemDecoder))
 
+
 errorItemDecoder : D.Decoder ErrorItem
 errorItemDecoder =
     D.map3 ErrorItem
         (D.field "path" D.string)
         (D.field "name" D.string)
         (D.field "problems" (D.list problemDecoder))
+
 
 problemDecoder : D.Decoder Problem
 problemDecoder =
@@ -109,19 +140,21 @@ regionDecoder =
         (D.field "start" positionDecoder)
         (D.field "end" positionDecoder)
 
+
 positionDecoder : D.Decoder Position
 positionDecoder =
     D.map2 Position
         (D.field "line" D.int)
         (D.field "column" D.int)
 
+
 messageItemDecoder : D.Decoder MessageItem
 messageItemDecoder =
     D.oneOf
-        [
-          D.map Plain D.string
+        [ D.map Plain D.string
         , D.map Styled styledStringDecoder
         ]
+
 
 styledStringDecoder : D.Decoder StyledString
 styledStringDecoder =
@@ -131,40 +164,30 @@ styledStringDecoder =
         (D.field "color" D.string)
         (D.field "string" D.string)
 
-dec decoder str = D.decodeString decoder str
+
+dec decoder str =
+    D.decodeString decoder str
+
+
 
 -- X1
-
-
 --> x1N = """[{\"bold\":false,\"underline\":false,\"color\":\"GREEN\",\"string\":\"String.fromInt 77"}, "ho ho ho!"]"""
 --"[{\"bold\":false,\"underline\":false,\"color\":\"GREEN\",\"string\":\"String.fromInt 77\"}, \"ho ho ho!\"]"
 --    : String
-
 --> dec (D.list messageItemDecoder) x1N
 --  Ok [Styled { bold = False, color = "GREEN", string = "String.fromInt 77", underline = False },Plain ("ho ho ho!")]
-
-
 -- X3
-
-
 --> x3 = """{"title": "TITLE", "region":{"start":{"line":3,"column":3},"end":{"line":3,"column":4}},"message": [{"bold":false,"underline":false,"color":"GREEN","string":"String.fromInt 77"}, "ho ho ho!"]}"""
-
 --> dec (problemDecoder) x2
 --Ok { message = [Styled { bold = False, color = "GREEN", string = "String.fromInt 77", underline = False },Plain ("ho ho ho!")], region = { end = { column = 4, line = 3 }, start = { column = 3, line = 3 } }, title = "TITLE" }
-
-
 -- X3
-
-
 --> x3 = """{"path": "/repl", "name": "Elm_Repl", "problems":[""" ++ x2 ++ """]}"""
 --"{\"path\": \"/repl\", \"name\": \"Elm_Repl\", \"problems\":[{\"title\": \"TITLE\", \"region\":{\"start\":{\"line\":3,\"column\":3},\"end\":{\"line\":3,\"column\":4}},\"message\": [{\"bold\":false,\"underline\":false,\"color\":\"GREEN\",\"string\":\"String.fromInt 77\"}, \"ho ho ho!\"]}]}"
 --    : String
 --> dec errorItemDecoder x3
 --Ok { name = "Elm_Repl", path = "/repl", problems = [{ message = [Styled { bold = False, color = "GREEN", string = "String.fromInt 77", underline = False },Plain ("ho ho ho!")], region = { end = { column = 4, line = 3 }, start = { column = 3, line = 3 } }, title = "TITLE" }] }
 --    : Result Error ErrorItem
-
 -- X4:
-
 --> x4 = """{ "type": "Compile Errors", "errors": [""" ++ x3 ++ """]}"""
 --"{ \"type\": \"Compile Errors\", \"errors\": [{\"path\": \"/repl\", \"name\": \"Elm_Repl\", \"problems\":[{\"title\": \"TITLE\", \"region\":{\"start\":{\"line\":3,\"column\":3},\"end\":{\"line\":3,\"column\":4}},\"message\": [{\"bold\":false,\"underline\":false,\"color\":\"GREEN\",\"string\":\"String.fromInt 77\"}, \"ho ho ho!\"]}]}]}"
 --    : String
