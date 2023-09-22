@@ -45,8 +45,8 @@ type alias EvalState =
 
 initEvalStateX : EvalState
 initEvalStateX =
-    { decls = Dict.fromList [ ( "foo", "1" ) ]
-    , types = Dict.fromList [ ( "foo", "Int" ) ]
+    { decls = Dict.fromList [ ( "foo", "foo: Int\nfoo = 1" ) ]
+    , types = Dict.fromList [ ( "foo", "foo: Int" ) ]
     , imports = Dict.empty
     }
 
