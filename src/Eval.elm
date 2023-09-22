@@ -1,9 +1,16 @@
-module Eval exposing (..)
-
----( replDataCodec, submitExpression, encodeExpr, decodeReplError)
+module Eval exposing
+    ( EvalState
+    , encodeExpr
+    , hasReplError
+    , initEvalState
+    , replDataCodec
+    , report
+    , submitExpressionWithEvalState
+    )
 
 import Codec exposing (Codec, Value)
 import Dict
+import ErrorReporter
 import Http
 import Json.Encode as Encode
 import Types exposing (Msg(..), ReplData)
@@ -18,8 +25,8 @@ replDataCodec =
         |> Codec.buildObject
 
 
-submitExpression : EvalState -> String -> Cmd Msg
-submitExpression evalState expr =
+submitExpressionWithEvalState : EvalState -> String -> Cmd Msg
+submitExpressionWithEvalState evalState expr =
     Http.post
         { url = "http://localhost:8000/repl"
         , body = Http.jsonBody (encodeExpr evalState expr)
@@ -59,3 +66,33 @@ encodeExpr evalState expr =
         , ( "types", Encode.dict identity Encode.string evalState.types )
         , ( "decls", Encode.dict identity Encode.string evalState.decls )
         ]
+
+
+report : String -> List ErrorReporter.MessageItem
+report str =
+    case ErrorReporter.decodeErrorReporter (str |> Debug.log "STR") of
+        Ok replError ->
+            renderReplReplError replError
+
+        Err _ ->
+            unknownReplError str
+
+
+hasReplError : String -> Bool
+hasReplError str =
+    String.left 24 str == "{\"type\":\"compile-errors\""
+
+
+renderReplReplError replError =
+    replError
+        |> .errors
+        |> List.concatMap .problems
+        |> List.concatMap .message
+
+
+unknownReplError str =
+    let
+        _ =
+            Debug.log "STR" str
+    in
+    [ ErrorReporter.Plain "Oops, something wen't wrong." ]

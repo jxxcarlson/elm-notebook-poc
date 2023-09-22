@@ -4,10 +4,12 @@ import Http
 import Json.Decode exposing (Value)
 import Keyboard
 
+
 type alias ReplData =
     { name : Maybe String
     , value : String
-    , tipe: String }
+    , tipe : String
+    }
 
 
 type Msg
@@ -15,7 +17,5 @@ type Msg
     | InputText String
     | RequestEval
     | GotReply (Result Http.Error String)
-    | ReceivedDataFromJS Value
+    | ReceivedFromJS Value
     | KeyboardMsg Keyboard.Msg
-
-

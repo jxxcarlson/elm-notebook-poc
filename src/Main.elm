@@ -31,15 +31,15 @@ main =
 
 
 type alias Model =
-    { input : String
-    , output : List ErrorReporter.MessageItem
+    { expressionText : String
+    , report : List ErrorReporter.MessageItem
     , replData : Maybe ReplData
     , evalState : Eval.EvalState
     , pressedKeys : List Keyboard.Key
     }
 
 
-port sendData : String -> Cmd msg
+port sendDataToJS : String -> Cmd msg
 
 
 port receiveData : (Value -> msg) -> Sub msg
@@ -51,8 +51,8 @@ type alias Flags =
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { input = ""
-      , output = []
+    ( { expressionText = ""
+      , report = []
       , replData = Nothing
       , evalState = Eval.initEvalState
       , pressedKeys = []
@@ -63,7 +63,7 @@ init flags =
 
 subscriptions _ =
     Sub.batch
-        [ receiveData ReceivedDataFromJS
+        [ receiveData ReceivedFromJS
         , Sub.map KeyboardMsg Keyboard.subscriptions
         ]
 
@@ -75,40 +75,24 @@ update msg model =
             ( model, Cmd.none )
 
         InputText str ->
-            ( { model | input = str }, Cmd.none )
+            ( { model | expressionText = str }, Cmd.none )
 
         RequestEval ->
-            ( { model | replData = Nothing }, Eval.submitExpression model.evalState model.input )
+            ( { model | replData = Nothing }, Eval.submitExpressionWithEvalState model.evalState model.expressionText )
 
         GotReply result ->
             case result of
                 Ok str ->
-                    if String.left 24 str == "{\"type\":\"compile-errors\"" then
-                        let
-                            report =
-                                case ErrorReporter.decodeErrorReporter (str |> Debug.log "STR") of
-                                    Ok report_ ->
-                                        report_
-                                            |> .errors
-                                            |> List.concatMap .problems
-                                            |> List.concatMap .message
-
-                                    Err _ ->
-                                        let
-                                            _ =
-                                                Debug.log "STR" str
-                                        in
-                                        [ ErrorReporter.Plain "Oops, something wen't wrong." ]
-                        in
-                        ( { model | output = report }, Cmd.none )
+                    if Eval.hasReplError str then
+                        ( { model | report = Eval.report str }, Cmd.none )
 
                     else
-                        ( { model | output = [ ErrorReporter.stringToMessageItem "Ok" ] }, sendData str )
+                        ( { model | report = [ ErrorReporter.stringToMessageItem "Ok" ] }, sendDataToJS str )
 
                 Err _ ->
-                    ( { model | output = [ ErrorReporter.stringToMessageItem "Error" ] }, Cmd.none )
+                    ( { model | report = [ ErrorReporter.stringToMessageItem "Error" ] }, Cmd.none )
 
-        ReceivedDataFromJS value ->
+        ReceivedFromJS value ->
             case Codec.decodeValue Eval.replDataCodec value of
                 Ok data ->
                     ( { model | replData = Just data }, Cmd.none )
@@ -124,7 +108,7 @@ update msg model =
                 ( newModel, cmd ) =
                     -- TODO: cmd?
                     if List.member Keyboard.Shift pressedKeys && List.member Keyboard.Enter pressedKeys then
-                        ( { model | replData = Nothing }, Eval.submitExpression model.evalState model.input )
+                        ( { model | replData = Nothing }, Eval.submitExpressionWithEvalState model.evalState model.expressionText )
 
                     else
                         ( { model | pressedKeys = pressedKeys }, Cmd.none )
@@ -165,17 +149,17 @@ mainColumn model =
             , display model
 
             --, appButton
-            , if List.isEmpty model.output then
+            , if List.isEmpty model.report then
                 Element.none
 
-              else if model.output == [ Plain "Ok" ] then
+              else if model.report == [ Plain "Ok" ] then
                 Element.none
 
               else
                 let
                     output : List (Element msg)
                     output =
-                        List.map ErrorReporter.renderMessageItem model.output
+                        List.map ErrorReporter.renderMessageItem model.report
                 in
                 paragraph
                     [ paddingXY 8 8
@@ -232,7 +216,7 @@ inputText : Model -> Element Msg
 inputText model =
     Input.text []
         { onChange = InputText
-        , text = model.input
+        , text = model.expressionText
         , placeholder = Just <| Input.placeholder [] (text "Enter text here")
         , label = Input.labelHidden "Input text"
         }
