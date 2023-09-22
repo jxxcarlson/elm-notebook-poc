@@ -1,8 +1,7 @@
 module ErrorReporter exposing
     ( MessageItem(..)
-    , StyledString
     , decodeErrorReporter
-    , renderMessageItem
+    , render
     , stringToMessageItem
     )
 
@@ -11,6 +10,7 @@ module ErrorReporter exposing
 
 import Color
 import Element exposing (..)
+import Element.Background as Background
 import Element.Font as Font
 import Json.Decode as D
 
@@ -59,7 +59,7 @@ renderMessageItem : MessageItem -> Element msg
 renderMessageItem messageItem =
     case messageItem of
         Plain str ->
-            el [] (text (str |> Debug.log "PLAIN_STRING"))
+            el [] (text (str |> String.replace "\n" ""))
 
         Styled styledString ->
             let
@@ -176,6 +176,36 @@ styledStringDecoder =
 
 dec decoder str =
     D.decodeString decoder str
+
+
+render report =
+    if List.isEmpty report then
+        Element.none
+
+    else if report == [ Plain "Ok" ] then
+        Element.none
+
+    else
+        let
+            output : List (Element msg)
+            output =
+                let
+                    filteredReport =
+                        List.filter (\item -> item /= Plain "\n    " && item /= Plain "\n\n") report
+                in
+                List.map renderMessageItem report
+        in
+        column
+            [ paddingXY 8 8
+            , Font.color (rgb 0.9 0.9 0.9)
+            , Font.size 14
+            , width (px 600)
+            , height (px 400)
+            , scrollbarY
+            , spacing 8
+            , Background.color (rgb 0 0 0)
+            ]
+            output
 
 
 

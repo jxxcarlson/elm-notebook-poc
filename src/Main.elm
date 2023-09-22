@@ -149,29 +149,7 @@ mainColumn model =
             , display model
 
             --, appButton
-            , if List.isEmpty model.report then
-                Element.none
-
-              else if model.report == [ Plain "Ok" ] then
-                Element.none
-
-              else
-                let
-                    output : List (Element msg)
-                    output =
-                        List.map ErrorReporter.renderMessageItem model.report
-                in
-                paragraph
-                    [ paddingXY 8 8
-                    , Font.color (rgb 0.9 0.9 0.9)
-                    , Font.size 14
-                    , width (px 600)
-                    , height (px 400)
-                    , scrollbarY
-                    , spacing 8
-                    , Background.color (rgb 0 0 0)
-                    ]
-                    output
+            , ErrorReporter.render model.report
             , displayReturnValue model
             ]
         ]
