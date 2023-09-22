@@ -5,7 +5,7 @@ module Eval exposing
     , initEvalState
     , replDataCodec
     , report
-    , submitExpressionWithEvalState
+    , requestEvaluation
     )
 
 import Codec exposing (Codec, Value)
@@ -25,8 +25,8 @@ replDataCodec =
         |> Codec.buildObject
 
 
-submitExpressionWithEvalState : EvalState -> String -> Cmd Msg
-submitExpressionWithEvalState evalState expr =
+requestEvaluation : EvalState -> String -> Cmd Msg
+requestEvaluation evalState expr =
     Http.post
         { url = "http://localhost:8000/repl"
         , body = Http.jsonBody (encodeExpr evalState expr)

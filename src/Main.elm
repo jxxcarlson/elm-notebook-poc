@@ -42,7 +42,7 @@ type alias Model =
 port sendDataToJS : String -> Cmd msg
 
 
-port receiveData : (Value -> msg) -> Sub msg
+port receiveFromJS : (Value -> msg) -> Sub msg
 
 
 type alias Flags =
@@ -63,7 +63,7 @@ init flags =
 
 subscriptions _ =
     Sub.batch
-        [ receiveData ReceivedFromJS
+        [ receiveFromJS ReceivedFromJS
         , Sub.map KeyboardMsg Keyboard.subscriptions
         ]
 
@@ -78,7 +78,7 @@ update msg model =
             ( { model | expressionText = str }, Cmd.none )
 
         RequestEval ->
-            ( { model | replData = Nothing }, Eval.submitExpressionWithEvalState model.evalState model.expressionText )
+            ( { model | replData = Nothing }, Eval.requestEvaluation model.evalState model.expressionText )
 
         GotReply result ->
             case result of
@@ -108,7 +108,7 @@ update msg model =
                 ( newModel, cmd ) =
                     -- TODO: cmd?
                     if List.member Keyboard.Shift pressedKeys && List.member Keyboard.Enter pressedKeys then
-                        ( { model | replData = Nothing }, Eval.submitExpressionWithEvalState model.evalState model.expressionText )
+                        ( { model | replData = Nothing }, Eval.requestEvaluation model.evalState model.expressionText )
 
                     else
                         ( { model | pressedKeys = pressedKeys }, Cmd.none )
