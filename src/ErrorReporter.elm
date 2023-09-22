@@ -50,7 +50,7 @@ type alias Problem =
 type alias StyledString =
     { bold : Bool
     , underline : Bool
-    , color : String
+    , color : Maybe String
     , string : String
     }
 
@@ -65,22 +65,25 @@ renderMessageItem messageItem =
             let
                 color =
                     case styledString.color of
-                        "red" ->
+                        Nothing ->
+                            Element.rgb 0.9 0 0.6
+
+                        Just "red" ->
                             Element.rgb 1 0 0
 
-                        "green" ->
+                        Just "green" ->
                             Element.rgb 0 1 0
 
-                        "blue" ->
+                        Just "blue" ->
                             Element.rgb 0 0 1
 
-                        "yellow" ->
+                        Just "yellow" ->
                             Element.rgb 1 1 0
 
-                        "black" ->
+                        Just "black" ->
                             Element.rgb 0.9 0.4 0.1
 
-                        "white" ->
+                        Just "white" ->
                             Element.rgb 1 1 1
 
                         _ ->
@@ -167,7 +170,7 @@ styledStringDecoder =
     D.map4 StyledString
         (D.field "bold" D.bool)
         (D.field "underline" D.bool)
-        (D.field "color" D.string)
+        (D.field "color" (D.nullable D.string))
         (D.field "string" D.string)
 
 
