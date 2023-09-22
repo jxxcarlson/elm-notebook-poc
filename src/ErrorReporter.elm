@@ -174,10 +174,6 @@ styledStringDecoder =
         (D.field "string" D.string)
 
 
-dec decoder str =
-    D.decodeString decoder str
-
-
 render report =
     if List.isEmpty report then
         Element.none
