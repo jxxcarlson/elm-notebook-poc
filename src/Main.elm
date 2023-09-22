@@ -84,7 +84,7 @@ update msg model =
             case result of
                 Ok str ->
                     if Eval.hasReplError str then
-                        ( { model | report = Eval.report str }, Cmd.none )
+                        ( { model | report = Eval.reportError str }, Cmd.none )
 
                     else
                         ( { model | report = [ ErrorReporter.stringToMessageItem "Ok" ] }, sendDataToJS str )

@@ -99,7 +99,7 @@ renderMessageItem messageItem =
                     else
                         Font.unitalicized
             in
-            el [ paddingXY 8 8, Font.color color, style ] (text (styledString.string |> Debug.log "STY_STRING"))
+            el [ paddingXY 8 8, Font.color color, style ] (text styledString.string)
 
 
 stringToMessageItem : String -> MessageItem
@@ -206,30 +206,3 @@ render report =
             , Background.color (rgb 0 0 0)
             ]
             output
-
-
-
--- X1
---> x1N = """[{\"bold\":false,\"underline\":false,\"color\":\"GREEN\",\"string\":\"String.fromInt 77"}, "ho ho ho!"]"""
---"[{\"bold\":false,\"underline\":false,\"color\":\"GREEN\",\"string\":\"String.fromInt 77\"}, \"ho ho ho!\"]"
---    : String
---> dec (D.list messageItemDecoder) x1N
---  Ok [Styled { bold = False, color = "GREEN", string = "String.fromInt 77", underline = False },Plain ("ho ho ho!")]
--- X3
---> x3 = """{"title": "TITLE", "region":{"start":{"line":3,"column":3},"end":{"line":3,"column":4}},"message": [{"bold":false,"underline":false,"color":"GREEN","string":"String.fromInt 77"}, "ho ho ho!"]}"""
---> dec (problemDecoder) x2
---Ok { message = [Styled { bold = False, color = "GREEN", string = "String.fromInt 77", underline = False },Plain ("ho ho ho!")], region = { end = { column = 4, line = 3 }, start = { column = 3, line = 3 } }, title = "TITLE" }
--- X3
---> x3 = """{"path": "/repl", "name": "Elm_Repl", "problems":[""" ++ x2 ++ """]}"""
---"{\"path\": \"/repl\", \"name\": \"Elm_Repl\", \"problems\":[{\"title\": \"TITLE\", \"region\":{\"start\":{\"line\":3,\"column\":3},\"end\":{\"line\":3,\"column\":4}},\"message\": [{\"bold\":false,\"underline\":false,\"color\":\"GREEN\",\"string\":\"String.fromInt 77\"}, \"ho ho ho!\"]}]}"
---    : String
---> dec errorItemDecoder x3
---Ok { name = "Elm_Repl", path = "/repl", problems = [{ message = [Styled { bold = False, color = "GREEN", string = "String.fromInt 77", underline = False },Plain ("ho ho ho!")], region = { end = { column = 4, line = 3 }, start = { column = 3, line = 3 } }, title = "TITLE" }] }
---    : Result Error ErrorItem
--- X4:
---> x4 = """{ "type": "Compile Errors", "errors": [""" ++ x3 ++ """]}"""
---"{ \"type\": \"Compile Errors\", \"errors\": [{\"path\": \"/repl\", \"name\": \"Elm_Repl\", \"problems\":[{\"title\": \"TITLE\", \"region\":{\"start\":{\"line\":3,\"column\":3},\"end\":{\"line\":3,\"column\":4}},\"message\": [{\"bold\":false,\"underline\":false,\"color\":\"GREEN\",\"string\":\"String.fromInt 77\"}, \"ho ho ho!\"]}]}]}"
---    : String
---> dec replErrorDecoder x4
---Ok { errors = [{ name = "Elm_Repl", path = "/repl", problems = [{ message = [Styled { bold = False, color = "GREEN", string = "String.fromInt 77", underline = False },Plain ("ho ho ho!")], region = { end = { column = 4, line = 3 }, start = { column = 3, line = 3 } }, title = "TITLE" }] }], tipe = "Compile Errors" }
---    : Result Error ReplError

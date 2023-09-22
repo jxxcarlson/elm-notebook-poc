@@ -6,7 +6,7 @@ module Eval exposing
     , initEvalState
     , initEvalStateX
     , replDataCodec
-    , report
+    , reportError
     , requestEvaluation
     )
 
@@ -69,9 +69,9 @@ encodeExpr evalState expr =
         ]
 
 
-report : String -> List ErrorReporter.MessageItem
-report str =
-    case ErrorReporter.decodeErrorReporter (str |> Debug.log "STR") of
+reportError : String -> List ErrorReporter.MessageItem
+reportError str =
+    case ErrorReporter.decodeErrorReporter str of
         Ok replError ->
             renderReplError replError
 
