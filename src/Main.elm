@@ -54,7 +54,7 @@ init flags =
     ( { expressionText = ""
       , report = []
       , replData = Nothing
-      , evalState = Eval.initEvalState
+      , evalState = Eval.initEvalStateX
       , pressedKeys = []
       }
     , Cmd.none

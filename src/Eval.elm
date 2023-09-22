@@ -1,8 +1,10 @@
 module Eval exposing
     ( EvalState
+    , bad
     , encodeExpr
     , hasReplError
     , initEvalState
+    , initEvalStateX
     , replDataCodec
     , report
     , requestEvaluation
@@ -41,13 +43,12 @@ type alias EvalState =
     }
 
 
-
---initEvalState : EvalState
---initEvalState =
---    { decls = Dict.fromList [ ( "greet", """greet : String -> String greet name = "Hello " ++ name""" ) ]
---    , types = Dict.empty
---    , imports = Dict.empty
---    }
+initEvalStateX : EvalState
+initEvalStateX =
+    { decls = Dict.fromList [ ( "foo", "1" ) ]
+    , types = Dict.fromList [ ( "foo", "Int" ) ]
+    , imports = Dict.empty
+    }
 
 
 initEvalState : EvalState
@@ -72,10 +73,14 @@ report : String -> List ErrorReporter.MessageItem
 report str =
     case ErrorReporter.decodeErrorReporter (str |> Debug.log "STR") of
         Ok replError ->
-            renderReplReplError replError
+            renderReplError replError
 
         Err _ ->
             unknownReplError str
+
+
+bad =
+    "{\"type\":\"compile-errors\",\"errors\":[{\"path\":\"/repl\",\"name\":\"Elm_Repl\",\"problems\":[{\"title\":\"UNEXPECTED CAPITAL LETTER\",\"region\":{\"start\":{\"line\":2,\"column\":1},\"end\":{\"line\":2,\"column\":1}},\"message\":[\"Declarations always start with a lower-case letter, so I am getting stuck here:\\n\\n2| Int1repl_input_value_ =\\n \",{\"bold\":false,\"underline\":false,\"color\":\"RED\",\"string\":\"^\"},\"\\nTry a name like \",{\"bold\":false,\"underline\":false,\"color\":\"GREEN\",\"string\":\"int1repl_input_value_\"},\" instead?\\n\\n\",{\"bold\":false,\"underline\":true,\"color\":null,\"string\":\"Note\"},\": Here are a couple valid declarations for reference:\\n\\n greet : String -> String\\n greet name =\\n \",{\"bold\":false,\"underline\":false,\"color\":\"yellow\",\"string\":\"\\\"Hello \\\"\"},\" ++ name ++ \",{\"bold\":false,\"underline\":false,\"color\":\"yellow\",\"string\":\"\\\"!\\\"\"},\"\\n \\n \",{\"bold\":false,\"underline\":false,\"color\":\"CYAN\",\"string\":\"type\"},\" User = Anonymous | LoggedIn String\\n\\nNotice that they always start with a lower-case letter. Capitalization matters!\"]}]}]}"
 
 
 hasReplError : String -> Bool
@@ -83,7 +88,8 @@ hasReplError str =
     String.left 24 str == "{\"type\":\"compile-errors\""
 
 
-renderReplReplError replError =
+renderReplError : { a | errors : List { b | problems : List { c | message : List d } } } -> List d
+renderReplError replError =
     replError
         |> .errors
         |> List.concatMap .problems
@@ -95,4 +101,4 @@ unknownReplError str =
         _ =
             Debug.log "STR" str
     in
-    [ ErrorReporter.Plain "Oops, something wen't wrong." ]
+    [ ErrorReporter.Plain <| "Unknown REPL error: " ++ Debug.toString str ]

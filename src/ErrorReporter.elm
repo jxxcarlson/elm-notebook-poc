@@ -1,4 +1,10 @@
-module ErrorReporter exposing (MessageItem(..), StyledString, decodeErrorReporter, renderMessageItem, stringToMessageItem)
+module ErrorReporter exposing
+    ( MessageItem(..)
+    , StyledString
+    , decodeErrorReporter
+    , renderMessageItem
+    , stringToMessageItem
+    )
 
 {-| This module contains the decoders for the error messages that the repl
 -}
