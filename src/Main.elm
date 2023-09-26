@@ -54,7 +54,7 @@ init flags =
     ( { expressionText = ""
       , report = []
       , replData = Nothing
-      , evalState = Eval.initEvalState
+      , evalState = Eval.initEmptyEvalState
       , pressedKeys = []
       }
     , Cmd.none
@@ -106,9 +106,26 @@ update msg model =
                     Keyboard.update keyMsg model.pressedKeys
 
                 ( newModel, cmd ) =
-                    -- TODO: cmd?
                     if List.member Keyboard.Shift pressedKeys && List.member Keyboard.Enter pressedKeys then
-                        ( { model | replData = Nothing }, Eval.requestEvaluation model.evalState model.expressionText )
+                        case String.split "=" model.expressionText of
+                            [] ->
+                                ( model, Cmd.none )
+
+                            expr :: [] ->
+                                ( { model | replData = Nothing }, Eval.requestEvaluation model.evalState expr )
+
+                            name :: expr :: [] ->
+                                let
+                                    newEvalState =
+                                        Eval.insertDeclaration name (name ++ " = " ++ expr ++ "\n") model.evalState
+
+                                    replData =
+                                        Just { name = Nothing, value = "Ok", tipe = "" }
+                                in
+                                ( { model | replData = replData, evalState = newEvalState }, Cmd.none )
+
+                            _ ->
+                                ( { model | pressedKeys = pressedKeys }, Cmd.none )
 
                     else
                         ( { model | pressedKeys = pressedKeys }, Cmd.none )
@@ -147,6 +164,7 @@ mainColumn model =
                 , el [ Font.size 12, Font.italic ] (text "Shift + Enter to evaluate cell")
                 ]
             , display model
+            , Eval.displayDictionary model.evalState.decls
 
             --, appButton
             , ErrorReporter.render model.report
@@ -169,7 +187,12 @@ display model =
                     ""
 
                 Just replData ->
-                    replData.value
+                    case replData.name of
+                        Nothing ->
+                            replData.value
+
+                        Just name ->
+                            name ++ " = " ++ replData.value
     in
     row [ Font.size 16 ]
         [ text value ]

@@ -1,21 +1,30 @@
 module Eval exposing
     ( EvalState
     , bad
+    , displayDictionary
     , encodeExpr
     , hasReplError
+    , initEmptyEvalState
     , initEvalState
-    , initEvalStateX
+    , insertDeclaration
+    , removeDeclaration
     , replDataCodec
     , reportError
     , requestEvaluation
     )
 
 import Codec exposing (Codec, Value)
-import Dict
+import Dict exposing (Dict)
+import Element as E exposing (Element)
+import Element.Font as Font
 import ErrorReporter
 import Http
 import Json.Encode as Encode
 import Types exposing (Msg(..), ReplData)
+
+
+foo =
+    123
 
 
 replDataCodec : Codec ReplData
@@ -36,6 +45,22 @@ requestEvaluation evalState expr =
         }
 
 
+insertDeclaration : String -> String -> EvalState -> EvalState
+insertDeclaration name value evalState =
+    { evalState
+        | decls =
+            Dict.insert name value evalState.decls
+    }
+
+
+removeDeclaration : String -> EvalState -> EvalState
+removeDeclaration name evalState =
+    { evalState
+        | decls =
+            Dict.remove name evalState.decls
+    }
+
+
 type alias EvalState =
     { decls : Dict.Dict String String
     , types : Dict.Dict String String
@@ -43,16 +68,43 @@ type alias EvalState =
     }
 
 
-initEvalStateX : EvalState
-initEvalStateX =
-    { decls = Dict.fromList [ ( "foo", "foo: Int\nfoo = 1" ) ]
-    , types = Dict.fromList [ ( "foo", "foo: Int" ) ]
-    , imports = Dict.empty
-    }
+displayDictionary : Dict String String -> Element msg
+displayDictionary declarationDict =
+    E.column [ E.spacing 12, Font.size 16 ]
+        (List.map
+            (\( k, v ) -> displayValue ( k, v ))
+            (Dict.toList declarationDict |> List.sortBy Tuple.first)
+        )
+
+
+displayValue : ( String, String ) -> Element msg
+displayValue ( k, v ) =
+    E.el [ E.width E.fill ] (E.text v)
+
+
+displayItem : ( String, String ) -> Element msg
+displayItem ( k, v ) =
+    E.row [ E.spacing 12 ]
+        [ E.el [ E.width (E.px 100) ] (E.text k)
+        , E.el [ E.width (E.px 400) ] (E.text v)
+        ]
 
 
 initEvalState : EvalState
 initEvalState =
+    { decls =
+        Dict.fromList
+            [ ( "inc", "inc x = x + 1\n" )
+            , ( "foo", "foo = 123\n" )
+            , ( "bar", "bar = 456\n" )
+            ]
+    , types = Dict.fromList []
+    , imports = Dict.fromList [ ( "elm-community/list-extra", "import List.Extra\n" ) ]
+    }
+
+
+initEmptyEvalState : EvalState
+initEmptyEvalState =
     { decls = Dict.empty
     , types = Dict.empty
     , imports = Dict.empty

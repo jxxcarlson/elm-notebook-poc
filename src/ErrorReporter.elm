@@ -8,11 +8,11 @@ module ErrorReporter exposing
 {-| This module contains the decoders for the error messages that the repl
 -}
 
-import Color
 import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
 import Json.Decode as D
+import List.Extra
 
 
 type alias ReplError =
@@ -59,7 +59,8 @@ renderMessageItem : MessageItem -> Element msg
 renderMessageItem messageItem =
     case messageItem of
         Plain str ->
-            el [] (text (str |> String.replace "\n" ""))
+            -- el [] (text (str |> String.replace "\n" ""))
+            el [] (text str)
 
         Styled styledString ->
             let
@@ -182,15 +183,6 @@ render report =
         Element.none
 
     else
-        let
-            output : List (Element msg)
-            output =
-                let
-                    filteredReport =
-                        List.filter (\item -> item /= Plain "\n    " && item /= Plain "\n\n") report
-                in
-                List.map renderMessageItem report
-        in
         column
             [ paddingXY 8 8
             , Font.color (rgb 0.9 0.9 0.9)
@@ -201,4 +193,46 @@ render report =
             , spacing 8
             , Background.color (rgb 0 0 0)
             ]
-            output
+            (prepareReport report)
+
+
+prepareReport : List MessageItem -> List (Element msg)
+prepareReport report =
+    let
+        groups : List (List MessageItem)
+        groups =
+            groupMessageItemsHelp report
+
+        --_ =
+        --    List.indexedMap (\index -> Debug.log ("GROUP " ++ String.fromInt (index + 1))) groups
+        bar : List (Element msg)
+        bar =
+            groups
+                |> List.map (List.map (\item -> renderMessageItem item))
+                |> List.map (\group_ -> paragraph [] group_)
+
+        --baz : Element msg
+        --baz =
+        --    column [] bar
+    in
+    bar
+
+
+groupMessageItemsHelp : List MessageItem -> List (List MessageItem)
+groupMessageItemsHelp messageItems =
+    List.Extra.groupWhile grouper messageItems |> List.map (\( first, rest ) -> first :: rest)
+
+
+grouper : MessageItem -> MessageItem -> Bool
+grouper item1 item2 =
+    case ( item1, item2 ) of
+        ( Plain _, _ ) ->
+            True
+
+        ( Styled styStr, _ ) ->
+            -- String.contains "\n" styStr.string
+            False
+
+
+foo =
+    [ Plain "The (++) operator can append List and String values, but not ", Styled { bold = False, color = Just "yellow", string = "number", underline = False }, Plain " values like\nthis:\n\n3|   1 ++ 1\n     ", Styled { bold = False, color = Just "RED", string = "^", underline = False }, Plain "\nTry using ", Styled { bold = False, color = Just "GREEN", string = "String.fromInt", underline = False }, Plain " to turn it into a string? Or put it in [] to make it a\nlist? Or switch to the (::) operator?" ]
