@@ -8,6 +8,7 @@ port module Main exposing (main)
 
 import Browser
 import Codec
+import Dict
 import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
@@ -112,7 +113,25 @@ update msg model =
                                 ( model, Cmd.none )
 
                             expr :: [] ->
-                                ( { model | replData = Nothing }, Eval.requestEvaluation model.evalState expr )
+                                if String.left 7 expr == ":remove" then
+                                    let
+                                        key =
+                                            String.dropLeft 8 expr |> String.trim
+                                    in
+                                    case Dict.get key model.evalState.decls of
+                                        Just _ ->
+                                            ( { model
+                                                | replData = Just { name = Nothing, value = key ++ ": removed", tipe = "" }
+                                                , evalState = Eval.removeDeclaration key model.evalState |> Debug.log "DICT"
+                                              }
+                                            , Cmd.none
+                                            )
+
+                                        Nothing ->
+                                            ( { model | replData = Just { name = Nothing, value = key ++ ": not found", tipe = "" } }, Cmd.none )
+
+                                else
+                                    ( { model | replData = Nothing }, Eval.requestEvaluation model.evalState expr )
 
                             name :: expr :: [] ->
                                 let
@@ -161,7 +180,7 @@ mainColumn model =
             [ title "Elm Notebook POC"
             , column [ spacing 4, width (px 600) ]
                 [ inputText model
-                , el [ Font.size 12, Font.italic ] (text "Shift + Enter to evaluate cell")
+                , el [ Font.size 12, Font.italic ] (text "Shift + Enter to evaluate cell; foo = 1 to add foo to dictionary; : remove foo to remove foo from dictionary")
                 ]
             , display model
             , Eval.displayDictionary model.evalState.decls

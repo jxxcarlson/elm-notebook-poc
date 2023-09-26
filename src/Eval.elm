@@ -49,7 +49,7 @@ insertDeclaration : String -> String -> EvalState -> EvalState
 insertDeclaration name value evalState =
     { evalState
         | decls =
-            Dict.insert name value evalState.decls
+            Dict.insert (String.trim name) value evalState.decls
     }
 
 
