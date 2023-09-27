@@ -113,25 +113,7 @@ update msg model =
                                 ( model, Cmd.none )
 
                             expr :: [] ->
-                                if String.left 7 expr == ":remove" then
-                                    let
-                                        key =
-                                            String.dropLeft 8 expr |> String.trim
-                                    in
-                                    case Dict.get key model.evalState.decls of
-                                        Just _ ->
-                                            ( { model
-                                                | replData = Just { name = Nothing, value = key ++ ": removed", tipe = "" }
-                                                , evalState = Eval.removeDeclaration key model.evalState |> Debug.log "DICT"
-                                              }
-                                            , Cmd.none
-                                            )
-
-                                        Nothing ->
-                                            ( { model | replData = Just { name = Nothing, value = key ++ ": not found", tipe = "" } }, Cmd.none )
-
-                                else
-                                    ( { model | replData = Nothing }, Eval.requestEvaluation model.evalState expr )
+                                processExpr model expr
 
                             name :: expr :: [] ->
                                 let
@@ -150,6 +132,28 @@ update msg model =
                         ( { model | pressedKeys = pressedKeys }, Cmd.none )
             in
             ( newModel, cmd )
+
+
+processExpr model expr =
+    if String.left 7 expr == ":remove" then
+        let
+            key =
+                String.dropLeft 8 expr |> String.trim
+        in
+        case Dict.get key model.evalState.decls of
+            Just _ ->
+                ( { model
+                    | replData = Just { name = Nothing, value = key ++ ": removed", tipe = "" }
+                    , evalState = Eval.removeDeclaration key model.evalState |> Debug.log "DICT"
+                  }
+                , Cmd.none
+                )
+
+            Nothing ->
+                ( { model | replData = Just { name = Nothing, value = key ++ ": not found", tipe = "" } }, Cmd.none )
+
+    else
+        ( { model | replData = Nothing }, Eval.requestEvaluation model.evalState expr )
 
 
 download : String -> Cmd msg
