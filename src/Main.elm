@@ -116,14 +116,7 @@ update msg model =
                                 processExpr model expr
 
                             name :: expr :: [] ->
-                                let
-                                    newEvalState =
-                                        Eval.insertDeclaration name (name ++ " = " ++ expr ++ "\n") model.evalState
-
-                                    replData =
-                                        Just { name = Nothing, value = "Ok", tipe = "" }
-                                in
-                                ( { model | replData = replData, evalState = newEvalState }, Cmd.none )
+                                processNameAndExpr model name expr
 
                             _ ->
                                 ( { model | pressedKeys = pressedKeys }, Cmd.none )
@@ -135,7 +128,19 @@ update msg model =
 
 
 processExpr model expr =
-    if String.left 7 expr == ":remove" then
+    if String.left 6 expr == ":clear" then
+        let
+            evalState =
+                model.evalState
+        in
+        ( { model
+            | replData = Just { name = Nothing, value = "cleared ...", tipe = "" }
+            , evalState = { evalState | decls = Dict.empty }
+          }
+        , Cmd.none
+        )
+
+    else if String.left 7 expr == ":remove" then
         let
             key =
                 String.dropLeft 8 expr |> String.trim
@@ -144,7 +149,7 @@ processExpr model expr =
             Just _ ->
                 ( { model
                     | replData = Just { name = Nothing, value = key ++ ": removed", tipe = "" }
-                    , evalState = Eval.removeDeclaration key model.evalState |> Debug.log "DICT"
+                    , evalState = Eval.removeDeclaration key model.evalState
                   }
                 , Cmd.none
                 )
@@ -154,6 +159,17 @@ processExpr model expr =
 
     else
         ( { model | replData = Nothing }, Eval.requestEvaluation model.evalState expr )
+
+
+processNameAndExpr model name expr =
+    let
+        newEvalState =
+            Eval.insertDeclaration name (name ++ " = " ++ expr ++ "\n") model.evalState
+
+        replData =
+            Just { name = Nothing, value = "Ok", tipe = "" }
+    in
+    ( { model | replData = replData, evalState = newEvalState }, Cmd.none )
 
 
 download : String -> Cmd msg
