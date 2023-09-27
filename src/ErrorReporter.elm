@@ -88,7 +88,7 @@ renderMessageItem messageItem =
                             Element.rgb 1 1 1
 
                         _ ->
-                            Element.rgb 0.9 0.4 0.1
+                            Element.rgb 0 1 0
 
                 style =
                     if styledString.bold then
@@ -196,12 +196,45 @@ render report =
             (prepareReport report)
 
 
+breakMessage : MessageItem -> List MessageItem
+breakMessage messageItem =
+    case messageItem of
+        Plain str ->
+            let
+                parts =
+                    String.split "\n" str
+
+                n =
+                    List.length parts
+
+                prefix =
+                    List.take (n - 1) parts |> List.map (\str_ -> Plain (str_ ++ "\n"))
+
+                last =
+                    List.drop (n - 1) parts |> List.map (\str_ -> Plain str_)
+            in
+            prefix ++ last
+
+        Styled styledString ->
+            [ Styled styledString ]
+
+
+breakMessages : List MessageItem -> List MessageItem
+breakMessages messageItems =
+    messageItems
+        |> List.map breakMessage
+        |> List.concat
+
+
 prepareReport : List MessageItem -> List (Element msg)
 prepareReport report =
     let
+        _ =
+            Debug.log "REPORT" (breakMessages report)
+
         groups : List (List MessageItem)
         groups =
-            groupMessageItemsHelp report
+            groupMessageItemsHelp (breakMessages report)
 
         --_ =
         --    List.indexedMap (\index -> Debug.log ("GROUP " ++ String.fromInt (index + 1))) groups
@@ -223,16 +256,13 @@ groupMessageItemsHelp messageItems =
     List.Extra.groupWhile grouper messageItems |> List.map (\( first, rest ) -> first :: rest)
 
 
+{-| start new group on false
+-}
 grouper : MessageItem -> MessageItem -> Bool
 grouper item1 item2 =
     case ( item1, item2 ) of
-        ( Plain _, _ ) ->
+        ( Plain str, _ ) ->
+            not <| String.contains "\n" str
+
+        ( Styled _, _ ) ->
             True
-
-        ( Styled styStr, _ ) ->
-            -- String.contains "\n" styStr.string
-            False
-
-
-foo =
-    [ Plain "The (++) operator can append List and String values, but not ", Styled { bold = False, color = Just "yellow", string = "number", underline = False }, Plain " values like\nthis:\n\n3|   1 ++ 1\n     ", Styled { bold = False, color = Just "RED", string = "^", underline = False }, Plain "\nTry using ", Styled { bold = False, color = Just "GREEN", string = "String.fromInt", underline = False }, Plain " to turn it into a string? Or put it in [] to make it a\nlist? Or switch to the (::) operator?" ]
