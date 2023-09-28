@@ -102,31 +102,10 @@ update msg model =
                     ( { model | replData = Nothing }, Cmd.none )
 
         KeyboardMsg keyMsg ->
-            let
-                pressedKeys =
-                    Keyboard.update keyMsg model.pressedKeys
-
-                ( newModel, cmd ) =
-                    if List.member Keyboard.Shift pressedKeys && List.member Keyboard.Enter pressedKeys then
-                        case String.split "=" model.expressionText of
-                            [] ->
-                                ( model, Cmd.none )
-
-                            expr :: [] ->
-                                processExpr model expr
-
-                            name :: expr :: [] ->
-                                processNameAndExpr model name expr
-
-                            _ ->
-                                ( { model | pressedKeys = pressedKeys }, Cmd.none )
-
-                    else
-                        ( { model | pressedKeys = pressedKeys }, Cmd.none )
-            in
-            ( newModel, cmd )
+            processCell model (Keyboard.update keyMsg model.pressedKeys)
 
 
+processExpr : Model -> String -> ( Model, Cmd Msg )
 processExpr model expr =
     if String.left 6 expr == ":clear" then
         let
@@ -161,6 +140,27 @@ processExpr model expr =
         ( { model | replData = Nothing }, Eval.requestEvaluation model.evalState expr )
 
 
+processCell : Model -> List Keyboard.Key -> ( Model, Cmd Msg )
+processCell model pressedKeys =
+    if List.member Keyboard.Shift pressedKeys && List.member Keyboard.Enter pressedKeys then
+        case String.split "=" model.expressionText of
+            [] ->
+                ( model, Cmd.none )
+
+            expr :: [] ->
+                processExpr model expr
+
+            name :: expr :: [] ->
+                processNameAndExpr model name expr
+
+            _ ->
+                ( { model | pressedKeys = pressedKeys }, Cmd.none )
+
+    else
+        ( { model | pressedKeys = pressedKeys }, Cmd.none )
+
+
+processNameAndExpr : Model -> String -> String -> ( Model, Cmd Msg )
 processNameAndExpr model name expr =
     let
         newEvalState =
