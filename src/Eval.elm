@@ -1,6 +1,5 @@
 module Eval exposing
-    ( EvalState
-    , bad
+    ( bad
     , displayDictionary
     , encodeExpr
     , hasReplError
@@ -20,7 +19,7 @@ import Element.Font as Font
 import ErrorReporter
 import Http
 import Json.Encode as Encode
-import Types exposing (Msg(..), ReplData)
+import Types exposing (EvalState, Msg(..), ReplData)
 
 
 replDataCodec : Codec ReplData
@@ -54,13 +53,6 @@ removeDeclaration name evalState =
     { evalState
         | decls =
             Dict.remove name evalState.decls
-    }
-
-
-type alias EvalState =
-    { decls : Dict.Dict String String
-    , types : Dict.Dict String String
-    , imports : Dict.Dict String String
     }
 
 

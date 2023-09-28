@@ -15,11 +15,12 @@ import Element.Font as Font
 import Element.Input as Input
 import ErrorReporter exposing (MessageItem(..))
 import Eval
+import EvalCell
 import File.Download as Download
 import Html exposing (Html)
 import Json.Decode exposing (Value)
 import Keyboard
-import Types exposing (Msg(..), ReplData)
+import Types exposing (Model, Msg(..), ReplData)
 
 
 main =
@@ -29,15 +30,6 @@ main =
         , update = update
         , subscriptions = subscriptions
         }
-
-
-type alias Model =
-    { expressionText : String
-    , report : List ErrorReporter.MessageItem
-    , replData : Maybe ReplData
-    , evalState : Eval.EvalState
-    , pressedKeys : List Keyboard.Key
-    }
 
 
 port sendDataToJS : String -> Cmd msg
@@ -102,74 +94,7 @@ update msg model =
                     ( { model | replData = Nothing }, Cmd.none )
 
         KeyboardMsg keyMsg ->
-            processCell model (Keyboard.update keyMsg model.pressedKeys)
-
-
-processExpr : Model -> String -> ( Model, Cmd Msg )
-processExpr model expr =
-    if String.left 6 expr == ":clear" then
-        let
-            evalState =
-                model.evalState
-        in
-        ( { model
-            | replData = Just { name = Nothing, value = "cleared ...", tipe = "" }
-            , evalState = { evalState | decls = Dict.empty }
-          }
-        , Cmd.none
-        )
-
-    else if String.left 7 expr == ":remove" then
-        let
-            key =
-                String.dropLeft 8 expr |> String.trim
-        in
-        case Dict.get key model.evalState.decls of
-            Just _ ->
-                ( { model
-                    | replData = Just { name = Nothing, value = key ++ ": removed", tipe = "" }
-                    , evalState = Eval.removeDeclaration key model.evalState
-                  }
-                , Cmd.none
-                )
-
-            Nothing ->
-                ( { model | replData = Just { name = Nothing, value = key ++ ": not found", tipe = "" } }, Cmd.none )
-
-    else
-        ( { model | replData = Nothing }, Eval.requestEvaluation model.evalState expr )
-
-
-processCell : Model -> List Keyboard.Key -> ( Model, Cmd Msg )
-processCell model pressedKeys =
-    if List.member Keyboard.Shift pressedKeys && List.member Keyboard.Enter pressedKeys then
-        case String.split "=" model.expressionText of
-            [] ->
-                ( model, Cmd.none )
-
-            expr :: [] ->
-                processExpr model expr
-
-            name :: expr :: [] ->
-                processNameAndExpr model name expr
-
-            _ ->
-                ( { model | pressedKeys = pressedKeys }, Cmd.none )
-
-    else
-        ( { model | pressedKeys = pressedKeys }, Cmd.none )
-
-
-processNameAndExpr : Model -> String -> String -> ( Model, Cmd Msg )
-processNameAndExpr model name expr =
-    let
-        newEvalState =
-            Eval.insertDeclaration name (name ++ " = " ++ expr ++ "\n") model.evalState
-
-        replData =
-            Just { name = Nothing, value = "Ok", tipe = "" }
-    in
-    ( { model | replData = replData, evalState = newEvalState }, Cmd.none )
+            EvalCell.processCell model (Keyboard.update keyMsg model.pressedKeys)
 
 
 download : String -> Cmd msg
