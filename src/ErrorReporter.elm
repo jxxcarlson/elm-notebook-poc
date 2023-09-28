@@ -65,30 +65,34 @@ renderMessageItem messageItem =
         Styled styledString ->
             let
                 color =
-                    case styledString.color of
-                        Nothing ->
-                            Element.rgb 0.9 0 0.6
+                    if String.contains "^" styledString.string then
+                        Element.rgb 1.0 0 0
 
-                        Just "red" ->
-                            Element.rgb 1 0 0
+                    else
+                        case styledString.color of
+                            Nothing ->
+                                Element.rgb 0.9 0 0.6
 
-                        Just "green" ->
-                            Element.rgb 0 1 0
+                            Just "red" ->
+                                Element.rgb 1 0 0
 
-                        Just "blue" ->
-                            Element.rgb 0 0 1
+                            Just "green" ->
+                                Element.rgb 0 1 0
 
-                        Just "yellow" ->
-                            Element.rgb 1 1 0
+                            Just "blue" ->
+                                Element.rgb 0 0 1
 
-                        Just "black" ->
-                            Element.rgb 0.9 0.4 0.1
+                            Just "yellow" ->
+                                Element.rgb 1 1 0
 
-                        Just "white" ->
-                            Element.rgb 1 1 1
+                            Just "black" ->
+                                Element.rgb 0.9 0.4 0.1
 
-                        _ ->
-                            Element.rgb 0 1 0
+                            Just "white" ->
+                                Element.rgb 1 1 1
+
+                            _ ->
+                                Element.rgb 0 1 0
 
                 style =
                     if styledString.bold then
@@ -99,8 +103,15 @@ renderMessageItem messageItem =
 
                     else
                         Font.unitalicized
+
+                padding_ =
+                    if String.contains "^" styledString.string then
+                        paddingXY 15 8
+
+                    else
+                        paddingXY 8 8
             in
-            el [ paddingXY 8 8, Font.color color, style ] (text styledString.string)
+            el [ padding_, Font.color color, style ] (text styledString.string)
 
 
 stringToMessageItem : String -> MessageItem
