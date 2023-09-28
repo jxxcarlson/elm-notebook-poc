@@ -23,10 +23,6 @@ import Json.Encode as Encode
 import Types exposing (Msg(..), ReplData)
 
 
-foo =
-    123
-
-
 replDataCodec : Codec ReplData
 replDataCodec =
     Codec.object ReplData
