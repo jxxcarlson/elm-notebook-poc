@@ -43,7 +43,7 @@ type alias Model =
 port sendDataToJS : String -> Cmd msg
 
 
-port receiveFromJS : (Value -> msg) -> Sub msg
+port receiveFromJS : (String -> msg) -> Sub msg
 
 
 type alias Flags =
@@ -94,7 +94,7 @@ update msg model =
                     ( { model | report = [ ErrorReporter.stringToMessageItem "Error" ] }, Cmd.none )
 
         ReceivedFromJS value ->
-            case Codec.decodeValue Eval.replDataCodec value of
+            case Codec.decodeString Eval.replDataCodec value of
                 Ok data ->
                     ( { model | replData = Just data }, Cmd.none )
 

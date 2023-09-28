@@ -15,14 +15,11 @@
     });
 
     app.ports.sendDataToJS.subscribe(function(data) {
-        console.log("Hello from ElJSLandn!");
-        console.log('Data for Elm:', data);
         // Check if the Web Worker feature is available in the browser
         if (window.Worker) {
 
             // Create a Blob from the JavaScript code (string) and create a URL for it
             var blob = new Blob([data.replace('_Debug_toAnsiString(true,','_Debug_toAnsiString(false,' )], { type: 'application/javascript' });
-            console.log('Blob:', blob);
             var url = URL.createObjectURL(blob);
 
             // Instantiate a new Web Worker object with the blob URL
@@ -30,8 +27,7 @@
 
             // Define an onmessage handler to receive messages from the worker
             myWorker.onmessage = (e) => {
-                console.log('Message received from worker:', e.data);
-                app.ports.receiveFromJS.send(e.data);
+                app.ports.receiveFromJS.send(JSON.stringify(e.data));
             };
 
             // Define an onerror handler to catch errors from the worker

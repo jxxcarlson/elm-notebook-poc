@@ -17,5 +17,5 @@ type Msg
     | InputText String
     | RequestEval
     | GotReply (Result Http.Error String)
-    | ReceivedFromJS Value
+    | ReceivedFromJS String
     | KeyboardMsg Keyboard.Msg
