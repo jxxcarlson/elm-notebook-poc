@@ -186,6 +186,7 @@ styledStringDecoder =
         (D.field "string" D.string)
 
 
+render : List MessageItem -> Element msg
 render report =
     if List.isEmpty report then
         Element.none
